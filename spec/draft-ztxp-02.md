@@ -192,6 +192,6 @@ Thanks to contributors in the **AuthZEN Working Group**, the **Open Policy Agent
 ## Author’s Address
 **Clifford Bell**  
 Email: [cjb2@proton.me](mailto:cjb2@proton.me)  
-GitHub: https://github.com/cliffbell
+GitHub: https://github.com/cjb00
 
 ---
