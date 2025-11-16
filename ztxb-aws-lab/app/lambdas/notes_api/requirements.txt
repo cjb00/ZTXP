@@ -1,0 +1,2 @@
+# app/lambdas/notes_api/requirements.txt
+# No extra deps; boto3 is available in the Lambda runtime.

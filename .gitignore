@@ -208,3 +208,11 @@ __marimo__/
 
 # macOS Finder metadata
 .DS_Store
+
+# ZTXP AWS lab Terraform artifacts
+ztxb-aws-lab/infra/.terraform/
+ztxb-aws-lab/infra/terraform.tfstate
+ztxb-aws-lab/infra/terraform.tfstate.backup
+
+ztxb-aws-lab/infra/modules/api_notes/*.zip
+ztxb-aws-lab/infra/modules/ztxp_broker/*.zip
