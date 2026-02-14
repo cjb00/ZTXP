@@ -216,3 +216,6 @@ ztxb-aws-lab/infra/terraform.tfstate.backup
 
 ztxb-aws-lab/infra/modules/api_notes/*.zip
 ztxb-aws-lab/infra/modules/ztxp_broker/*.zip
+
+# Claude Code
+CLAUDE.md
