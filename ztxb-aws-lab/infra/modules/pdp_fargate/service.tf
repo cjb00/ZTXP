@@ -1,7 +1,12 @@
+###############################################
+# ALB (internal — only reachable from VPC)
+###############################################
+
 resource "aws_lb" "pdp" {
   name               = "${var.project}-pdp-alb"
   load_balancer_type = "application"
-  security_groups    = [var.default_sg_id]
+  internal           = true
+  security_groups    = [aws_security_group.pdp_alb.id]
   subnets            = var.public_subnet_ids
 }
 
@@ -35,6 +40,10 @@ resource "aws_lb_listener" "pdp_http" {
   }
 }
 
+###############################################
+# ECS SERVICE
+###############################################
+
 resource "aws_ecs_service" "pdp" {
   name            = "${var.project}-pdp-service"
   cluster         = aws_ecs_cluster.this.id
@@ -45,7 +54,7 @@ resource "aws_ecs_service" "pdp" {
   network_configuration {
     assign_public_ip = true
     subnets          = var.public_subnet_ids
-    security_groups  = [var.default_sg_id]
+    security_groups  = [aws_security_group.pdp_task.id]
   }
 
   load_balancer {
@@ -54,6 +63,10 @@ resource "aws_ecs_service" "pdp" {
     container_port   = 8181
   }
 }
+
+###############################################
+# OUTPUT
+###############################################
 
 output "pdp_url" {
   value = aws_lb.pdp.dns_name

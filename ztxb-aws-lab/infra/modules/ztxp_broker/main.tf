@@ -19,7 +19,8 @@ resource "aws_lambda_function" "broker" {
 
   environment {
     variables = {
-      PDP_URL = var.pdp_url
+      PDP_URL     = var.pdp_url
+      KMS_KEY_ARN = var.kms_key_arn
     }
   }
 }
@@ -44,6 +45,12 @@ resource "aws_apigatewayv2_route" "broker_evaluate" {
   api_id    = aws_apigatewayv2_api.broker_http.id
   route_key = "POST /ztxp/evaluate"
   target    = "integrations/${aws_apigatewayv2_integration.broker_lambda.id}"
+}
+
+resource "aws_apigatewayv2_stage" "broker_default" {
+  api_id      = aws_apigatewayv2_api.broker_http.id
+  name        = "$default"
+  auto_deploy = true
 }
 
 resource "aws_lambda_permission" "broker_invoke" {
