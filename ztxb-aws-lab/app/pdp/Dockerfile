@@ -7,5 +7,5 @@ COPY policy /policy
 
 EXPOSE 8181
 
-# Run OPA in server mode and load our policy package
-CMD ["run", "--server", "/policy/authz.rego", "--addr", ":8181"]
+# Run OPA in server mode, load the entire policy directory
+CMD ["run", "--server", "--addr", ":8181", "/policy"]
