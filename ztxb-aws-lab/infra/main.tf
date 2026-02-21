@@ -21,8 +21,10 @@ module "kms" {
 ###############################################
 
 module "cognito" {
-  source  = "./modules/cognito"
-  project = var.project
+  source        = "./modules/cognito"
+  project       = var.project
+  callback_urls = var.cognito_callback_urls
+  logout_urls   = var.cognito_logout_urls
 }
 
 ###############################################

@@ -50,7 +50,16 @@ def build_tam(event):
     principal_id = "anonymous"
     groups = []
     if auth_header:
-        principal_id = _extract_sub_from_jwt(auth_header) or auth_header[:40]
+        claims = _decode_jwt_claims(auth_header)
+        principal_id = (
+            claims.get("sub")
+            or claims.get("email")
+            or claims.get("cognito:username")
+            or auth_header[:40]
+        )
+        # cognito:groups is a list of group names the user belongs to;
+        # these map directly to the OPA policy groups ("writer", "admin")
+        groups = claims.get("cognito:groups", [])
 
     # --- Device context (forwarded by client headers) ---
     device_id = headers.get("x-device-id", "unknown")
@@ -141,19 +150,22 @@ def call_broker(signed_tam):
 # JWT helper (lightweight — no external deps)
 # ---------------------------------------------------------------------------
 
-def _extract_sub_from_jwt(auth_header):
-    """Best-effort extraction of 'sub' claim from a Bearer JWT.
-    We do NOT verify the JWT here — Cognito + API Gateway handle that.
-    We only need the subject identifier for the TAM."""
+def _decode_jwt_claims(auth_header):
+    """Decode JWT claims from a Bearer token without verifying the signature.
+
+    Signature verification is handled upstream by Cognito + API Gateway.
+    We only need the claims (sub, cognito:groups, etc.) for the TAM.
+    Returns an empty dict on any parse failure.
+    """
     try:
         token = auth_header.replace("Bearer ", "").strip()
         payload_segment = token.split(".")[1]
+        # Restore base64 padding
         padding = 4 - len(payload_segment) % 4
         payload_segment += "=" * padding
-        claims = json.loads(base64.b64decode(payload_segment))
-        return claims.get("sub") or claims.get("email") or claims.get("cognito:username")
+        return json.loads(base64.b64decode(payload_segment))
     except Exception:
-        return None
+        return {}
 
 
 # ---------------------------------------------------------------------------
