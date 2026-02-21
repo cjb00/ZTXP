@@ -85,6 +85,38 @@ class TestBuildTam:
         tam = pep.build_tam(event)
         assert tam["subject"]["id"] == "user:user-abc-123"
 
+    def test_cognito_groups_extracted(self):
+        claims = {"sub": "user-abc-123", "cognito:groups": ["writer", "admin"]}
+        payload = base64.b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+        fake_jwt = f"eyJhbGciOiJSUzI1NiJ9.{payload}.fake-sig"
+
+        event = _make_event(auth_header=f"Bearer {fake_jwt}")
+        tam = pep.build_tam(event)
+        assert tam["subject"]["groups"] == ["writer", "admin"]
+
+    def test_no_groups_when_missing(self):
+        claims = {"sub": "user-abc-123"}
+        payload = base64.b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+        fake_jwt = f"eyJhbGciOiJSUzI1NiJ9.{payload}.fake-sig"
+
+        event = _make_event(auth_header=f"Bearer {fake_jwt}")
+        tam = pep.build_tam(event)
+        assert tam["subject"]["groups"] == []
+
+
+class TestDecodeJwtClaims:
+    def test_decodes_claims(self):
+        claims = {"sub": "abc", "cognito:groups": ["writer"]}
+        payload = base64.b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+        fake_jwt = f"header.{payload}.sig"
+        result = pep._decode_jwt_claims(f"Bearer {fake_jwt}")
+        assert result["sub"] == "abc"
+        assert result["cognito:groups"] == ["writer"]
+
+    def test_returns_empty_on_bad_token(self):
+        result = pep._decode_jwt_claims("Bearer not.valid")
+        assert result == {}
+
 
 class TestCanonicalJson:
     def test_deterministic(self):

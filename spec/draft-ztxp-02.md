@@ -134,20 +134,22 @@ This API is intentionally compatible with the **OpenID AuthZEN “evaluate”** 
 ---
 
 ## 8. Reference Implementation
-The reference Python toolkit **`ztxp-v0.2.py`** includes:
+The reference Python toolkit **`ztxpv0.2.py`** includes:
 
-- `sign` – generate signed TAMs from YAML or JSON  
-- `verify` – validate signature and timestamp  
-- `broker` – HTTP evaluation service  
-- `opa` – optional Open Policy Agent integration  
+- `sign` – generate signed TAMs from YAML or JSON
+- `verify` – validate signature and timestamp
+- `broker` – HTTP evaluation service
+- `opa` – optional Open Policy Agent integration
 
-**Repository:** [https://github.com/cliffbell/ZTXP](https://github.com/cliffbell/ZTXP)
+**Repository:** [https://github.com/cjb00/ZTXP](https://github.com/cjb00/ZTXP)
 
 **Example workflow**
 ```bash
-python ztxp-v0.2.py sign tam.yaml signed.json
-python ztxp-v0.2.py broker --port 8080
-curl -X POST -H "Content-Type: application/json"      --data @signed.json      http://127.0.0.1:8080/ztxp/evaluate
+python ztxpv0.2.py sign tam.yaml signed.json
+python ztxpv0.2.py broker --port 8080
+curl -X POST -H "Content-Type: application/json" \
+     --data @signed.json \
+     http://127.0.0.1:8080/ztxp/evaluate
 ```
 
 ---

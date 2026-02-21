@@ -16,6 +16,18 @@ variable "pdp_image" {
   default     = "" # set via -var or tfvars (e.g. from build.sh output)
 }
 
+variable "cognito_callback_urls" {
+  description = "OAuth callback URLs for the Cognito app client"
+  type        = list(string)
+  default     = ["https://example.com/callback"]
+}
+
+variable "cognito_logout_urls" {
+  description = "OAuth logout URLs for the Cognito app client"
+  type        = list(string)
+  default     = ["https://example.com/logout"]
+}
+
 variable "tags" {
   description = "Default tags applied to resources"
   type        = map(string)
