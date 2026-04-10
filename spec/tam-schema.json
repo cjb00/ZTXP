@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/cjb00/ZTXP/spec/tam-schema.json",
+  "title": "Trust Assertion Message (TAM)",
+  "description": "JSON Schema for the ZTXP Trust Assertion Message format (draft-ztxp-02, §10.1). All REQUIRED fields must be present; unknown top-level fields are permitted and MUST NOT cause rejection.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["version", "issuer", "issued_at", "subject", "device", "context", "resource", "signature"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "ZTXP protocol version string (e.g. '0.2'). Unknown values SHOULD cause rejection.",
+      "minLength": 1
+    },
+    "issuer": {
+      "type": "string",
+      "description": "URI identifying the issuing trust domain or broker (e.g. 'ztxp://broker.example.com').",
+      "format": "uri"
+    },
+    "issued_at": {
+      "type": "string",
+      "description": "RFC 3339 timestamp at which this TAM was issued.",
+      "format": "date-time"
+    },
+    "subject": {
+      "type": "object",
+      "description": "The principal (user or service account) for whom the TAM is issued.",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subject (e.g. 'user:alice@example.com').",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "description": "OPTIONAL. Subject's role or group (e.g. 'finance-analyst')."
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "description": "The device from which the request originates.",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the device.",
+          "minLength": 1
+        },
+        "posture": {
+          "type": "object",
+          "description": "OPTIONAL. Device compliance and attestation information.",
+          "additionalProperties": true,
+          "properties": {
+            "compliant": {
+              "type": "boolean",
+              "description": "Whether the device satisfies the governing compliance policy. A value of false SHOULD result in deny unless policy explicitly allows non-compliant devices."
+            },
+            "os_version": {
+              "type": "string",
+              "description": "OPTIONAL. Operating system version string."
+            },
+            "attestation": {
+              "type": "string",
+              "description": "OPTIONAL. Attestation scheme (e.g. 'TPM2', 'MDM'). Treated as unverified evidence unless independently verified."
+            }
+          }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Environmental and session context for this request.",
+      "additionalProperties": true,
+      "properties": {
+        "risk_score": {
+          "type": "integer",
+          "description": "Risk score in [0, 100]. 0 = lowest risk, 100 = highest risk. Values outside this range MUST cause TAM rejection.",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "trust_level": {
+          "type": "string",
+          "description": "OPTIONAL. Normalized trust classification. Implementations MUST map this to policy-relevant thresholds.",
+          "enum": ["critical", "high", "medium", "low", "untrusted"]
+        },
+        "geo": {
+          "type": "string",
+          "description": "OPTIONAL. Geographic region code (e.g. 'US-TX')."
+        },
+        "session_id": {
+          "type": "string",
+          "description": "OPTIONAL. Session identifier for correlation."
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "description": "The resource being requested.",
+      "required": ["id", "action"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "URI or identifier of the target resource (e.g. 'app://internal-finance').",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "description": "The requested action on the resource (e.g. 'read', 'write').",
+          "minLength": 1
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "description": "Cryptographic signature over the canonical form of this TAM (see §4.1). The signature object itself is excluded from the signed input.",
+      "required": ["alg", "key_id", "sig"],
+      "additionalProperties": false,
+      "properties": {
+        "alg": {
+          "type": "string",
+          "description": "Signing algorithm (e.g. 'Ed25519', 'EdDSA', 'ES256'). Implementations MUST support Ed25519.",
+          "minLength": 1
+        },
+        "key_id": {
+          "type": "string",
+          "description": "URI identifying the public key used for this signature.",
+          "minLength": 1
+        },
+        "sig": {
+          "type": "string",
+          "description": "Base64-encoded signature bytes.",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "description": "OPTIONAL. Arbitrary evidence claims about the subject, device, or environment. Implementations MUST NOT treat these as verified without an independent verification path.",
+      "additionalProperties": true
+    },
+    "chain": {
+      "type": "array",
+      "description": "OPTIONAL. Ordered list of prior TAM assertions from upstream trust domains, preserving chain of custody (see §10.5). Each element is a prior TAM object.",
+      "items": {
+        "$ref": "#"
+      }
+    }
+  }
+}

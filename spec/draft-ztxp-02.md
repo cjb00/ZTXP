@@ -83,7 +83,23 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
   }
 }
 ```
-All fields are mandatory unless marked *optional* in a future extension. The entire canonical JSON (excluding `signature`) is signed.
+All fields are mandatory unless marked *optional* in a future extension. The entire canonical JSON (excluding `signature`) is signed (see §4.1).
+
+### 4.1 Canonical Form
+
+The canonical form of a TAM is the deterministic byte sequence used as input for signing and signature verification. It is produced by:
+
+1. Removing the `signature` object from the TAM.
+2. Serializing the remaining object to JSON with keys sorted lexicographically at every level of nesting.
+3. Encoding with no insignificant whitespace (no spaces or newlines outside string values) and no trailing commas.
+4. Preserving array element order exactly as received.
+5. Encoding the resulting JSON string as UTF-8 bytes.
+
+Implementations MUST use this procedure when both producing and verifying signatures. The reference implementation (`ztxpv0.2.py`) expresses this as:
+
+```python
+json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+```
 
 ---
 
@@ -91,7 +107,7 @@ All fields are mandatory unless marked *optional* in a future extension. The ent
 - **Algorithm:** Ed25519 (default); Ed448 or ECDSA P-256 allowed by extension.  
 - **Replay Protection:** Brokers reject TAMs older than the configured TTL (default 600 s).  
 - **Key Distribution:** JWKS endpoint or static PEM; key URIs identified via `key_id`.  
-- **Canonicalization:** UTF-8, sorted keys, no insignificant whitespace.  
+- **Canonicalization:** See §4.1 for the normative canonical form definition.  
 - **Verification:** Canonical JSON (excluding `signature`) MUST verify against the declared algorithm and public key.  
 - **Revocation:** Keys SHOULD support rotation and revocation lists distributed through `/ztxp/metadata`.
 
@@ -186,13 +202,14 @@ A conforming implementation MUST validate that a received TAM contains all requi
 
 A conforming implementation MUST NOT reject a TAM solely because it contains unrecognized top-level fields. Unknown fields SHOULD be preserved and passed through to the policy evaluator.
 
+A normative JSON Schema (draft-07) for the TAM structure is provided in `spec/tam-schema.json`.
+
 ### 10.2 Signing and Verification Requirements
 
 Conforming implementations MUST support Ed25519 as the baseline signing algorithm (see §5). Ed448 and ECDSA P-256 MAY be supported as additional algorithms.
 
 - Implementations MUST NOT accept a TAM whose `signature.alg` value is unrecognized, unless the implementation is explicitly configured to accept it.
-- The canonical form used for signing and verification MUST be UTF-8 encoded, with JSON keys sorted lexicographically and no insignificant whitespace, with the `signature` object excluded from the input bytes.
-- A verifying implementation MUST reconstruct the canonical form from the received JSON before verifying the signature. It MUST NOT verify against raw received bytes.
+- The canonical form for signing and verification is defined in §4.1. Implementations MUST use that procedure exactly; they MUST NOT sign or verify against raw received bytes.
 - Implementations MUST NOT accept a TAM whose cryptographic signature fails verification.
 - Key distribution MUST be supported via JWKS endpoint or static PEM file, identified through the `key_id` URI.
 
@@ -235,15 +252,16 @@ Conforming consumers MUST enforce TAM lifetime as follows (see §5 for TTL defau
 
 A conforming ZTXP implementation that exposes an evaluation service MUST satisfy the following (see §6):
 
-- Accept `POST /ztxp/evaluate` with `Content-Type: application/json` and a request body containing a `tam` field.
+- Accept `POST /ztxp/evaluate` with `Content-Type: application/json` and a request body that is the TAM object itself (the body IS the TAM — not a wrapper such as `{"tam": {...}}`).
 - Return a JSON response containing at minimum: `decision` (one of `"allow"` or `"deny"`), `evaluated_at` (RFC 3339 timestamp), and `expires_in` (non-negative integer, seconds).
 - Return HTTP 400 for requests with structurally invalid TAMs.
-- Return HTTP 403 for valid TAMs that result in a deny decision.
-- Expose `GET /ztxp/metadata` returning at minimum: the list of supported `alg` values, active `key_id` identifiers, and the implementation's `version` string.
-
-A conforming implementation MAY expose `GET /ztxp/health`.
+- Return HTTP 200 with `"decision": "deny"` for valid TAMs that result in a deny decision. Note: future versions of this spec MAY require HTTP 403 for denied requests to align with REST conventions; implementations SHOULD document their HTTP status behavior.
 
 Implementations MUST NOT require proprietary extensions to the TAM structure or evaluation API in order to produce a basic allow or deny decision.
+
+*The following are normative goals not yet satisfied by the reference implementation (`ztxpv0.2.py`):*
+- `GET /ztxp/metadata` MUST return at minimum: the list of supported `alg` values, active `key_id` identifiers, and the implementation's `version` string. *(aspirational — not yet implemented)*
+- `GET /ztxp/health` MAY be exposed to report broker liveness. *(aspirational — not yet implemented)*
 
 ---
 

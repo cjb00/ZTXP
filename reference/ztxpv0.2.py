@@ -127,6 +127,16 @@ def validate_structure(msg: Dict[str, Any]) -> None:
     if abs(now - ts) > timedelta(minutes=5):
         raise ValueError("Timestamp is too far from current time (±5 min)")
 
+    # risk_score range validation (§10.3): reject out-of-range values, never clamp
+    risk_score = msg.get("context", {}).get("risk_score")
+    if risk_score is not None:
+        if isinstance(risk_score, bool) or not isinstance(risk_score, int):
+            raise ValueError("context.risk_score MUST be an integer")
+        if not (0 <= risk_score <= 100):
+            raise ValueError(
+                f"context.risk_score {risk_score} is out of range [0, 100]; TAM rejected"
+            )
+
 
 def sign_message(tam: Dict[str, Any]) -> Dict[str, Any]:
     tam = tam.copy()
@@ -171,12 +181,12 @@ def verify_message(tam: Dict[str, Any]) -> bool:
 
 def evaluate_policy(tam: Dict[str, Any]) -> Dict[str, Any]:
     """Simple policy engine for demo."""
-    risk = tam["context"].get("risk_score", 100)
+    risk = tam["context"].get("risk_score")  # None means absent; treat as high-risk
     compliant = tam["source_device"].get("posture", {}).get("compliant", False)
-    decision = "allow" if risk < 50 and compliant else "deny"
+    decision = "allow" if risk is not None and risk < 50 and compliant else "deny"
     reason = []
-    if risk >= 50:
-        reason.append("high risk")
+    if risk is None or risk >= 50:
+        reason.append("high risk" if risk is not None else "risk_score absent")
     if not compliant:
         reason.append("non-compliant device")
 
